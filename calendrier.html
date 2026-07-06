@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendrier Scolaire Interactif 2026-2027</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #ffffff;
+        zoom: 0.9;
+    }
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+    
+    /* Zone cliquable invisible tout en haut pour la direction */
+    .admin-trigger {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 25px;
+        cursor: default;
+        z-index: 9999;
+    }
+
+    .header {
+        background-color: #00bcd4;
+        color: white;
+        text-align: center;
+        padding: 12px 5px;
+        margin-bottom: 8px;
+        border: 2px solid #000;
+        transition: background-color 0.3s;
+    }
+    .header h1 { margin: 0; font-size: 16pt; font-weight: bold; }
+    .header h2 { margin: 4px 0 0 0; font-size: 12pt; font-weight: bold; }
+    
+    /* Conteneur pour permettre le défilement horizontal propre sur smartphone */
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .calendar-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        min-width: 1000px; /* Force l'alignement en colonnes même sur petit écran */
+    }
+    .calendar-table th {
+        border: 2px solid #000;
+        color: #000;
+        font-weight: bold;
+        font-size: 9pt;
+        padding: 6px 0;
+        text-align: center;
+        background-color: #ffffff;
+    }
+    .calendar-table td {
+        border: 1px solid #000;
+        height: 22px;
+        font-size: 8.5pt;
+        padding: 0 4px;
+        vertical-align: middle;
+        position: relative;
+        user-select: none;
+    }
+    .edit-mode-active td {
+        cursor: pointer;
+    }
+    .day-text { display: inline-block; width: 28px; }
+    .day-num { display: inline-block; text-align: right; width: 16px; font-weight: bold; }
+    
+    .weekend { background-color: #aeaeae !important; color: #000 !important; }
+    .holiday { background-color: #7f7f7f !important; color: #ffffff !important; }
+    
+    .week-letter {
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-weight: bold;
+        font-size: 10pt;
+        color: #000;
+    }
+
+    /* Fenêtres de dialogue Responsives (PC & Smartphones) */
+    #login-panel, #admin-panel {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        border: 3px solid #000;
+        padding: 20px;
+        z-index: 10000;
+        box-shadow: 0px 4px 20px rgba(0,0,0,0.4);
+        width: 90%;
+        max-width: 340px;
+    }
+    .admin-tools { display: flex; flex-direction: column; gap: 12px; }
+    .admin-tools label { font-size: 10pt; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+    .btn { padding: 10px 12px; color: white; border: none; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px; font-size: 11pt; }
+    .btn-login { background: #00bcd4; }
+    .btn-save { background: #4caf50; }
+    .btn-close { background: #f44336; }
+    input[type="password"] { width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #000; font-size: 11pt; }
+
+    /* Adaptations spécifiques pour Smartphones */
+    @media (max-width: 768px) {
+        body { zoom: 1.0; } /* Désactive le zoom fixe pour laisser le navigateur gérer */
+        .header h1 { font-size: 13pt; }
+        .header h2 { font-size: 10pt; }
+    }
+</style>
+</head>
+<body>
+
+<div class="admin-trigger" onclick="openLogin()"></div>
+
+<div class="header" id="app-header">
+    <h1>CALENDRIER ANNÉE SCOLAIRE 2026 - 2027</h1>
+    <h2>CALENDRIER DES SEMAINES A et B</h2>
+</div>
+
+<div id="login-panel">
+    <h3 style="margin-top:0;">Connexion Direction</h3>
+    <input type="password" id="admin-pass" placeholder="Code d'accès">
+    <button class="btn btn-login" onclick="submitLogin()">Se connecter</button>
+    <button class="btn btn-close" onclick="hidePanels()">Fermer</button>
+</div>
+
+<div id="admin-panel">
+    <h3 style="margin-top:0;">Panneau de Configuration</h3>
+    <div class="admin-tools">
+        <label>Trimestre 1 (Sep-Déc) : <input type="color" id="color1" value="#b2ebf2"></label>
+        <label>Trimestre 2 (Jan-Mar) : <input type="color" id="color2" value="#ffe0b2"></label>
+        <label>Trimestre 3 (Avr-Juil) : <input type="color" id="color3" value="#f8bbd0"></label>
+        <hr style="width:100%;">
+        <span style="font-size:8.5pt; color:#555;">💡 * Touchez directement les cases pour basculer les jours fériés.</span>
+        <button class="btn btn-save" onclick="saveData()">Enregistrer les modifications</button>
+        <button class="btn btn-close" onclick="logoutAdmin()">Quitter le mode édition</button>
+    </div>
+</div>
+
+<div class="table-container">
+    <table class="calendar-table">
+        <thead>
+            <tr>
+                <th>SEPTEMBRE</th><th>OCTOBRE</th><th>NOVEMBRE</th><th>DÉCEMBRE</th>
+                <th>JANVIER</th><th>FÉVRIER</th><th>MARS</th><th>AVRIL</th>
+                <th>MAI</th><th>JUIN</th><th>JUILLET</th>
+            </tr>
+        </thead>
+        <tbody id="calendar-body"></tbody>
+    </table>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAGTPxhfLwZXq69Hci5UEfe_rnDVM9qgqA",
+  authDomain: "calendrier-afb4e.firebaseapp.com",
+  databaseURL: "https://calendrier-afb4e-default-rtdb.firebaseio.com",
+  projectId: "calendrier-afb4e",
+  storageBucket: "calendrier-afb4e.firebasestorage.app",
+  messagingSenderId: "301791413903",
+  appId: "1:301791413903:web:3ef42baeecf900c865d2fa"
+};
+
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+const monthsInfo = [
+    { name: "SEPTEMBRE", year: 2026, month: 8 }, { name: "OCTOBRE", year: 2026, month: 9 },
+    { name: "NOVEMBRE", year: 2026, month: 10 }, { name: "DÉCEMBRE", year: 2026, month: 11 },
+    { name: "JANVIER", year: 2027, month: 0 }, { name: "FÉVRIER", year: 2027, month: 1 },
+    { name: "MARS", year: 2027, month: 2 }, { name: "AVRIL", year: 2027, month: 3 },
+    { name: "MAI", year: 2027, month: 4 }, { name: "JUIN", year: 2027, month: 5 },
+    { name: "JUILLET", year: 2027, month: 6 }
+];
+const dayNames = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"];
+
+let initialHolidays = [
+    "2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09",
+    "2026-11-12", "2027-01-04", "2027-01-05", "2027-01-06", "2027-01-07", "2027-01-08", "2027-01-09",
+    "2027-02-22", "2027-02-23", "2027-02-24", "2027-02-25", "2027-02-26", "2027-02-27", "2027-02-28",
+    "2027-03-28", "2027-03-29", "2027-04-04", "2027-04-19", "2027-04-20", "2027-04-21", "2027-04-22",
+    "2027-04-23", "2027-04-24", "2027-04-25", "2027-05-17"
+];
+
+let state = {
+    color1: "#b2ebf2",
+    color2: "#ffe0b2",
+    color3: "#f8bbd0",
+    holidays: initialHolidays
+};
+
+let editMode = false;
+
+function getWeekLetter(date) {
+    let d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    let dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    let yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    let weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+    return (weekNo % 2 === 0) ? "A" : "B";
+}
+
+function renderCalendar() {
+    const tbody = document.getElementById("calendar-body");
+    tbody.innerHTML = "";
+    
+    let styles = document.getElementById("dynamic-styles");
+    if (!styles) {
+        styles = document.createElement("style");
+        styles.id = "dynamic-styles";
+        document.head.appendChild(styles);
+    }
+    styles.innerHTML = `
+        .t1-cell { background-color: ${state.color1} !important; }
+        .t2-cell { background-color: ${state.color2} !important; }
+        .t3-cell { background-color: ${state.color3} !important; }
+    `;
+
+    for (let day = 1; day <= 31; day++) {
+        let row = document.createElement("tr");
+        
+        monthsInfo.forEach(info => {
+            let td = document.createElement("td");
+            let totalDays = new Date(info.year, info.month + 1, 0).getDate();
+            
+            if (info.month === 6 && day > 10) {
+                td.style.border = "none";
+                row.appendChild(td);
+                return;
+            }
+            
+            if (day <= totalDays) {
+                let currentSubDate = new Date(info.year, info.month, day);
+                let dayOfWeek = (currentSubDate.getDay() + 6) % 7;
+                let dateString = `${info.year}-${String(info.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                
+                td.setAttribute("data-date", dateString);
+                td.innerHTML = `<span class="day-text">${dayNames[dayOfWeek]}</span><span class="day-num">${day}</span>`;
+                
+                let periodClass = "t3-cell";
+                if (info.month >= 8 && info.month <= 11) periodClass = "t1-cell";
+                else if (info.month >= 0 && info.month <= 2) periodClass = "t2-cell";
+                
+                if (state.holidays.includes(dateString)) {
+                    td.className = "holiday";
+                } else if (dayOfWeek >= 5) {
+                    td.className = "weekend";
+                } else {
+                    td.className = periodClass;
+                    if (dayOfWeek === 2) {
+                        td.innerHTML += `<span class="week-letter">${getWeekLetter(currentSubDate)}</span>`;
+                    }
+                }
+                
+                td.onclick = function() {
+                    if (!editMode) return;
+                    if (state.holidays.includes(dateString)) {
+                        state.holidays = state.holidays.filter(d => d !== dateString);
+                    } else {
+                        state.holidays.push(dateString);
+                    }
+                    renderCalendar();
+                };
+            }
+            row.appendChild(td);
+        });
+        tbody.appendChild(row);
+    }
+}
+
+database.ref("calendar_state").on("value", (snapshot) => {
+    if (snapshot.exists()) {
+        let data = snapshot.val();
+        state.color1 = data.color1 || state.color1;
+        state.color2 = data.color2 || state.color2;
+        state.color3 = data.color3 || state.color3;
+        state.holidays = data.holidays || [];
+        
+        document.getElementById("color1").value = state.color1;
+        document.getElementById("color2").value = state.color2;
+        document.getElementById("color3").value = state.color3;
+    }
+    renderCalendar();
+});
+
+function openLogin() { document.getElementById("login-panel").style.display = "block"; }
+function hidePanels() { document.getElementById("login-panel").style.display = "none"; document.getElementById("admin-panel").style.display = "none"; }
+
+function submitLogin() {
+    const pass = document.getElementById("admin-pass").value;
+    if (pass === "Tidjane20.12.") { 
+        editMode = true;
+        document.body.classList.add("edit-mode-active");
+        document.getElementById("login-panel").style.display = "none";
+        document.getElementById("admin-panel").style.display = "block";
+        document.getElementById("app-header").style.backgroundColor = "#e91e63";
+    } else {
+        alert("Code erroné.");
+    }
+}
+
+function logoutAdmin() {
+    editMode = false;
+    document.body.classList.remove("edit-mode-active");
+    document.getElementById("admin-panel").style.display = "none";
+    document.getElementById("app-header").style.backgroundColor = "#00bcd4";
+}
+
+function saveData() {
+    state.color1 = document.getElementById("color1").value;
+    state.color2 = document.getElementById("color2").value;
+    state.color3 = document.getElementById("color3").value;
+    
+    database.ref("calendar_state").set(state).then(() => {
+        alert("🔄 Modifications enregistrées dans Firebase avec succès !");
+        logoutAdmin();
+    }).catch(error => {
+        alert("Erreur : " + error.message);
+    });
+}
+</script>
+</body>
+</html>
