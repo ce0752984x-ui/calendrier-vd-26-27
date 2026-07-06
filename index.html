@@ -16,15 +16,20 @@
         box-sizing: border-box;
     }
     
-    /* Zone cliquable invisible tout en haut pour la direction */
-    .admin-trigger {
+    /* Petit engrenage d'accès en haut à droite */
+    .admin-gear {
         position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 25px;
-        cursor: default;
+        top: 10px;
+        right: 15px;
+        font-size: 16pt;
+        cursor: pointer;
         z-index: 9999;
+        user-select: none;
+        color: #000000;
+        transition: transform 0.3s;
+    }
+    .admin-gear:hover {
+        transform: rotate(45deg);
     }
 
     .header {
@@ -35,10 +40,51 @@
         margin-bottom: 8px;
         border: 2px solid #000;
         transition: background-color 0.3s;
+        position: relative;
     }
     .header h1 { margin: 0; font-size: 16pt; font-weight: bold; }
     .header h2 { margin: 4px 0 0 0; font-size: 12pt; font-weight: bold; }
     
+    /* Barre d'outils intégrée à l'en-tête (masquée par défaut) */
+    .header-tools {
+        display: none;
+        margin-top: 10px;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 8px;
+        border-radius: 4px;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    .header-tools label {
+        font-size: 9.5pt;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .header-tools input[type="color"] {
+        border: 1px solid #fff;
+        background: none;
+        cursor: pointer;
+        width: 30px;
+        height: 25px;
+        padding: 0;
+    }
+    .header-tools .btn-inline {
+        padding: 5px 10px;
+        font-size: 9.5pt;
+        font-weight: bold;
+        color: #fff;
+        border: 1px solid #fff;
+        background: transparent;
+        cursor: pointer;
+        border-radius: 3px;
+    }
+    .header-tools .btn-inline.save { background: #4caf50; border-color: #4caf50; }
+    .header-tools .btn-inline.close { background: #f44336; border-color: #f44336; }
+
     /* Conteneur pour permettre le défilement horizontal propre sur smartphone */
     .table-container {
         width: 100%;
@@ -50,7 +96,7 @@
         width: 100%;
         border-collapse: collapse;
         table-layout: fixed;
-        min-width: 1000px; /* Force l'alignement en colonnes même sur petit écran */
+        min-width: 1000px;
     }
     .calendar-table th {
         border: 2px solid #000;
@@ -89,8 +135,8 @@
         color: #000;
     }
 
-    /* Fenêtres de dialogue Responsives (PC & Smartphones) */
-    #login-panel, #admin-panel {
+    /* Fenêtre de Connexion Direction */
+    #login-panel {
         display: none;
         position: fixed;
         top: 50%;
@@ -103,30 +149,38 @@
         box-shadow: 0px 4px 20px rgba(0,0,0,0.4);
         width: 90%;
         max-width: 340px;
+        color: #000;
     }
-    .admin-tools { display: flex; flex-direction: column; gap: 12px; }
-    .admin-tools label { font-size: 10pt; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
     .btn { padding: 10px 12px; color: white; border: none; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px; font-size: 11pt; }
     .btn-login { background: #00bcd4; }
-    .btn-save { background: #4caf50; }
     .btn-close { background: #f44336; }
     input[type="password"] { width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #000; font-size: 11pt; }
 
     /* Adaptations spécifiques pour Smartphones */
     @media (max-width: 768px) {
-        body { zoom: 1.0; } /* Désactive le zoom fixe pour laisser le navigateur gérer */
+        body { zoom: 1.0; }
         .header h1 { font-size: 13pt; }
         .header h2 { font-size: 10pt; }
+        .header-tools { gap: 8px; padding: 5px; }
+        .header-tools label { font-size: 8.5pt; }
     }
 </style>
 </head>
 <body>
 
-<div class="admin-trigger" onclick="openLogin()"></div>
+<div class="admin-gear" onclick="openLogin()">⚙</div>
 
 <div class="header" id="app-header">
     <h1>CALENDRIER ANNÉE SCOLAIRE 2026 - 2027</h1>
     <h2>CALENDRIER DES SEMAINES A et B</h2>
+    
+    <div class="header-tools" id="header-tools-panel">
+        <label>T1 (Sep-Déc) : <input type="color" id="color1" value="#b2ebf2"></label>
+        <label>T2 (Jan-Mar) : <input type="color" id="color2" value="#ffe0b2"></label>
+        <label>T3 (Avr-Juil) : <input type="color" id="color3" value="#f8bbd0"></label>
+        <button class="btn inline save" onclick="saveData()">Enregistrer</button>
+        <button class="btn inline close" onclick="logoutAdmin()">Quitter</button>
+    </div>
 </div>
 
 <div id="login-panel">
@@ -134,19 +188,6 @@
     <input type="password" id="admin-pass" placeholder="Code d'accès">
     <button class="btn btn-login" onclick="submitLogin()">Se connecter</button>
     <button class="btn btn-close" onclick="hidePanels()">Fermer</button>
-</div>
-
-<div id="admin-panel">
-    <h3 style="margin-top:0;">Panneau de Configuration</h3>
-    <div class="admin-tools">
-        <label>Trimestre 1 (Sep-Déc) : <input type="color" id="color1" value="#b2ebf2"></label>
-        <label>Trimestre 2 (Jan-Mar) : <input type="color" id="color2" value="#ffe0b2"></label>
-        <label>Trimestre 3 (Avr-Juil) : <input type="color" id="color3" value="#f8bbd0"></label>
-        <hr style="width:100%;">
-        <span style="font-size:8.5pt; color:#555;">💡 * Touchez directement les cases pour basculer les jours fériés.</span>
-        <button class="btn btn-save" onclick="saveData()">Enregistrer les modifications</button>
-        <button class="btn btn-close" onclick="logoutAdmin()">Quitter le mode édition</button>
-    </div>
 </div>
 
 <div class="table-container">
@@ -299,7 +340,7 @@ database.ref("calendar_state").on("value", (snapshot) => {
 });
 
 function openLogin() { document.getElementById("login-panel").style.display = "block"; }
-function hidePanels() { document.getElementById("login-panel").style.display = "none"; document.getElementById("admin-panel").style.display = "none"; }
+function hidePanels() { document.getElementById("login-panel").style.display = "none"; }
 
 function submitLogin() {
     const pass = document.getElementById("admin-pass").value;
@@ -307,7 +348,7 @@ function submitLogin() {
         editMode = true;
         document.body.classList.add("edit-mode-active");
         document.getElementById("login-panel").style.display = "none";
-        document.getElementById("admin-panel").style.display = "block";
+        document.getElementById("header-tools-panel").style.display = "flex";
         document.getElementById("app-header").style.backgroundColor = "#e91e63";
     } else {
         alert("Code erroné.");
@@ -317,7 +358,7 @@ function submitLogin() {
 function logoutAdmin() {
     editMode = false;
     document.body.classList.remove("edit-mode-active");
-    document.getElementById("admin-panel").style.display = "none";
+    document.getElementById("header-tools-panel").style.display = "none";
     document.getElementById("app-header").style.backgroundColor = "#00bcd4";
 }
 
