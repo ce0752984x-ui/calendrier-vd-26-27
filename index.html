@@ -45,7 +45,7 @@
     .header h1 { margin: 0; font-size: 16pt; font-weight: bold; }
     .header h2 { margin: 4px 0 0 0; font-size: 12pt; font-weight: bold; }
     
-    /* Barre d'outils dans l'en-tête */
+    /* Barre d'outils de l'en-tête */
     .header-tools {
         display: none; 
         margin-top: 12px;
@@ -92,13 +92,12 @@
     .header-tools .btn-inline.save { background: #4caf50; border-color: #4caf50; }
     .header-tools .btn-inline.close { background: #f44336; border-color: #f44336; }
 
-    /* Conteneur défilement mobile et calendrier */
+    /* Table & Calendrier */
     .table-container {
         width: 100%;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
-    
     .calendar-table {
         width: 100%;
         border-collapse: collapse;
@@ -146,13 +145,17 @@
     #maintenance-screen {
         display: none;
         text-align: center;
-        padding: 50px 20px;
-        margin-top: 100px;
+        padding: 60px 20px;
+        margin: 40px auto;
+        max-width: 600px;
+        border: 2px dashed #f44336;
+        background-color: #fff5f5;
+        border-radius: 8px;
     }
-    #maintenance-screen h2 { font-size: 24pt; color: #f44336; margin-bottom: 15px; }
-    #maintenance-screen p { font-size: 14pt; color: #555; }
+    #maintenance-screen h2 { font-size: 22pt; color: #f44336; margin-top: 0; }
+    #maintenance-screen p { font-size: 13pt; color: #444; line-height: 1.5; }
 
-    /* Fenêtre Connexion */
+    /* Login */
     #login-panel {
         display: none;
         position: fixed;
@@ -178,7 +181,6 @@
         .header h1 { font-size: 13pt; }
         .header h2 { font-size: 10pt; }
         .header-tools { gap: 10px; padding: 8px; }
-        .header-tools label { font-size: 8.5pt; }
     }
 </style>
 </head>
@@ -195,10 +197,10 @@
         <label>T2 : <input type="color" id="color2" value="#ffe0b2"></label>
         <label>T3 : <input type="color" id="color3" value="#f8bbd0"></label>
         <label style="border-left: 1px dashed #fff; padding-left: 10px; margin-left: 5px; color: #ffeb3b;">
-            <input type="checkbox" id="maintenance-toggle"> Maintenance Active
+            <input type="checkbox" id="maintenance-toggle" onchange="previewMaintenance()"> Maintenance Active
         </label>
-        <input type="text" id="maintenance-title-input" placeholder="Titre maintenance" style="width:130px;">
-        <input type="text" id="maintenance-text-input" placeholder="Texte explicatif" style="width:180px;">
+        <input type="text" id="maintenance-title-input" placeholder="Titre maintenance" style="width:140px;" oninput="previewMaintenance()">
+        <input type="text" id="maintenance-text-input" placeholder="Texte explicatif" style="width:190px;" oninput="previewMaintenance()">
         <button class="btn-inline save" onclick="saveData()">Enregistrer</button>
         <button class="btn-inline close" onclick="logoutAdmin()">Quitter</button>
     </div>
@@ -213,7 +215,7 @@
 
 <div id="maintenance-screen">
     <h2 id="display-m-title">Site en maintenance</h2>
-    <p id="display-m-text">Le calendrier est actuellement en cours de mise à jour par la direction. Merci de patienter.</p>
+    <p id="display-m-text">Le calendrier est en cours de mise à jour.</p>
 </div>
 
 <div class="table-container" id="main-calendar-container">
@@ -256,37 +258,37 @@ const monthsInfo = [
 ];
 const dayNames = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"];
 
-let initialHolidays = [
-    "2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09",
-    "2026-11-12", "2027-01-04", "2027-01-05", "2027-01-06", "2027-01-07", "2027-01-08", "2027-01-09",
-    "2027-02-22", "2027-02-23", "2027-02-24", "2027-02-25", "2027-02-26", "2027-02-27", "2027-02-28",
-    "2027-03-28", "2027-03-29", "2027-04-04", "2027-04-19", "2027-04-20", "2027-04-21", "2027-04-22",
-    "2027-04-23", "2027-04-24", "2027-04-25", "2027-05-17"
-];
-
 let state = {
     color1: "#b2ebf2",
     color2: "#ffe0b2",
     color3: "#f8bbd0",
-    holidays: initialHolidays,
+    holidays: [],
     maintenanceMode: false,
     maintenanceTitle: "Site en maintenance",
-    maintenanceText: "Le calendrier est actuellement en cours de mise à jour par la direction. Merci de patienter."
+    maintenanceText: "Le calendrier est en cours de mise à jour."
 };
 
 let editMode = false;
 
-function getWeekLetter(date) {
-    let d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    let dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    let yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-    let weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
-    return (weekNo % 2 === 0) ? "A" : "B";
+// Fonction de prévisualisation en direct de la maintenance pendant la frappe
+function previewMaintenance() {
+    const isChecked = document.getElementById("maintenance-toggle").checked;
+    const titleVal = document.getElementById("maintenance-title-input").value;
+    const textVal = document.getElementById("maintenance-text-input").value;
+
+    document.getElementById("display-m-title").innerText = titleVal || "Site en maintenance";
+    document.getElementById("display-m-text").innerText = textVal || "Le calendrier est en cours de mise à jour.";
+
+    if (isChecked) {
+        document.getElementById("main-calendar-container").style.display = "none";
+        document.getElementById("maintenance-screen").style.display = "block";
+    } else {
+        document.getElementById("main-calendar-container").style.display = "block";
+        document.getElementById("maintenance-screen").style.display = "none";
+    }
 }
 
-function applyVisibility() {
-    // Si le mode maintenance est actif ET qu'on n'est pas connecté en admin
+function applyFinalVisibility() {
     if (state.maintenanceMode && !editMode) {
         document.getElementById("main-calendar-container").style.display = "none";
         document.getElementById("maintenance-screen").style.display = "block";
@@ -296,6 +298,15 @@ function applyVisibility() {
         document.getElementById("main-calendar-container").style.display = "block";
         document.getElementById("maintenance-screen").style.display = "none";
     }
+}
+
+function getWeekLetter(date) {
+    let d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    let dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    let yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    let weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+    return (weekNo % 2 === 0) ? "A" : "B";
 }
 
 function renderCalendar() {
@@ -339,7 +350,7 @@ function renderCalendar() {
                 if (info.month >= 8 && info.month <= 11) periodClass = "t1-cell";
                 else if (info.month >= 0 && info.month <= 2) periodClass = "t2-cell";
                 
-                if (state.holidays.includes(dateString)) {
+                if (state.holidays && state.holidays.includes(dateString)) {
                     td.className = "holiday";
                 } else if (dayOfWeek >= 5) {
                     td.className = "weekend";
@@ -352,6 +363,7 @@ function renderCalendar() {
                 
                 td.onclick = function() {
                     if (!editMode) return;
+                    if (!state.holidays) state.holidays = [];
                     if (state.holidays.includes(dateString)) {
                         state.holidays = state.holidays.filter(d => d !== dateString);
                     } else {
@@ -373,9 +385,9 @@ database.ref("calendar_state").on("value", (snapshot) => {
         state.color2 = data.color2 || state.color2;
         state.color3 = data.color3 || state.color3;
         state.holidays = data.holidays || [];
-        state.maintenanceMode = data.maintenanceMode !== undefined ? data.maintenanceMode : state.maintenanceMode;
-        state.maintenanceTitle = data.maintenanceTitle || state.maintenanceTitle;
-        state.maintenanceText = data.maintenanceText || state.maintenanceText;
+        state.maintenanceMode = data.maintenanceMode || false;
+        state.maintenanceTitle = data.maintenanceTitle || "Site en maintenance";
+        state.maintenanceText = data.maintenanceText || "Le calendrier est en cours de mise à jour.";
         
         document.getElementById("color1").value = state.color1;
         document.getElementById("color2").value = state.color2;
@@ -384,7 +396,7 @@ database.ref("calendar_state").on("value", (snapshot) => {
         document.getElementById("maintenance-title-input").value = state.maintenanceTitle;
         document.getElementById("maintenance-text-input").value = state.maintenanceText;
     }
-    applyVisibility();
+    if (!editMode) applyFinalVisibility();
     renderCalendar();
 });
 
@@ -399,7 +411,7 @@ function submitLogin() {
         document.getElementById("login-panel").style.display = "none";
         document.getElementById("header-tools-panel").style.display = "flex";
         document.getElementById("app-header").style.backgroundColor = "#e91e63";
-        applyVisibility();
+        previewMaintenance(); // Permet à l'admin de voir l'état actuel coché
     } else {
         alert("Code erroné.");
     }
@@ -410,7 +422,7 @@ function logoutAdmin() {
     document.body.classList.remove("edit-mode-active");
     document.getElementById("header-tools-panel").style.display = "none";
     document.getElementById("app-header").style.backgroundColor = "#00bcd4";
-    applyVisibility();
+    applyFinalVisibility();
 }
 
 function saveData() {
@@ -422,7 +434,7 @@ function saveData() {
     state.maintenanceText = document.getElementById("maintenance-text-input").value;
     
     database.ref("calendar_state").set(state).then(() => {
-        alert("🔄 Modifications et état de la maintenance enregistrés avec succès !");
+        alert("🔄 Tout a été synchronisé et enregistré sur Firebase !");
         logoutAdmin();
     }).catch(error => {
         alert("Erreur : " + error.message);
