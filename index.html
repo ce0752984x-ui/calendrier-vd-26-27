@@ -16,12 +16,12 @@
         box-sizing: border-box;
     }
     
-    /* Petit engrenage d'accès en haut à droite */
+    /* Engrenage d'accès en haut à droite */
     .admin-gear {
         position: absolute;
-        top: 10px;
+        top: 12px;
         right: 15px;
-        font-size: 16pt;
+        font-size: 18pt;
         cursor: pointer;
         z-index: 9999;
         user-select: none;
@@ -36,7 +36,7 @@
         background-color: #00bcd4;
         color: white;
         text-align: center;
-        padding: 12px 5px;
+        padding: 15px 5px;
         margin-bottom: 8px;
         border: 2px solid #000;
         transition: background-color 0.3s;
@@ -45,35 +45,36 @@
     .header h1 { margin: 0; font-size: 16pt; font-weight: bold; }
     .header h2 { margin: 4px 0 0 0; font-size: 12pt; font-weight: bold; }
     
-    /* Barre d'outils intégrée à l'en-tête (masquée par défaut) */
+    /* Barre d'outils directement dans l'en-tête (apparaît en flex après connexion) */
     .header-tools {
-        display: none;
-        margin-top: 10px;
-        background: rgba(255, 255, 255, 0.2);
-        padding: 8px;
+        display: none; 
+        margin-top: 12px;
+        background: rgba(255, 255, 255, 0.25);
+        padding: 10px;
         border-radius: 4px;
+        border: 1px solid #fff;
         justify-content: center;
         align-items: center;
         flex-wrap: wrap;
         gap: 15px;
     }
     .header-tools label {
-        font-size: 9.5pt;
+        font-size: 10pt;
         font-weight: bold;
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 8px;
     }
     .header-tools input[type="color"] {
         border: 1px solid #fff;
         background: none;
         cursor: pointer;
-        width: 30px;
+        width: 35px;
         height: 25px;
         padding: 0;
     }
     .header-tools .btn-inline {
-        padding: 5px 10px;
+        padding: 6px 12px;
         font-size: 9.5pt;
         font-weight: bold;
         color: #fff;
@@ -85,7 +86,7 @@
     .header-tools .btn-inline.save { background: #4caf50; border-color: #4caf50; }
     .header-tools .btn-inline.close { background: #f44336; border-color: #f44336; }
 
-    /* Conteneur pour permettre le défilement horizontal propre sur smartphone */
+    /* Conteneur défilement mobile */
     .table-container {
         width: 100%;
         overflow-x: auto;
@@ -135,7 +136,7 @@
         color: #000;
     }
 
-    /* Fenêtre de Connexion Direction */
+    /* Fenêtre Connexion */
     #login-panel {
         display: none;
         position: fixed;
@@ -156,7 +157,6 @@
     .btn-close { background: #f44336; }
     input[type="password"] { width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #000; font-size: 11pt; }
 
-    /* Adaptations spécifiques pour Smartphones */
     @media (max-width: 768px) {
         body { zoom: 1.0; }
         .header h1 { font-size: 13pt; }
@@ -178,8 +178,8 @@
         <label>T1 (Sep-Déc) : <input type="color" id="color1" value="#b2ebf2"></label>
         <label>T2 (Jan-Mar) : <input type="color" id="color2" value="#ffe0b2"></label>
         <label>T3 (Avr-Juil) : <input type="color" id="color3" value="#f8bbd0"></label>
-        <button class="btn inline save" onclick="saveData()">Enregistrer</button>
-        <button class="btn inline close" onclick="logoutAdmin()">Quitter</button>
+        <button class="btn-inline save" onclick="saveData()">Enregistrer</button>
+        <button class="btn-inline close" onclick="logoutAdmin()">Quitter</button>
     </div>
 </div>
 
@@ -348,7 +348,7 @@ function submitLogin() {
         editMode = true;
         document.body.classList.add("edit-mode-active");
         document.getElementById("login-panel").style.display = "none";
-        document.getElementById("header-tools-panel").style.display = "flex";
+        document.getElementById("header-tools-panel").style.display = "flex"; // Les outils s'intègrent à la bannière
         document.getElementById("app-header").style.backgroundColor = "#e91e63";
     } else {
         alert("Code erroné.");
@@ -368,7 +368,7 @@ function saveData() {
     state.color3 = document.getElementById("color3").value;
     
     database.ref("calendar_state").set(state).then(() => {
-        alert("🔄 Modifications enregistrées dans Firebase avec succès !");
+        alert("🔄 Modifications enregistrées avec succès !");
         logoutAdmin();
     }).catch(error => {
         alert("Erreur : " + error.message);
