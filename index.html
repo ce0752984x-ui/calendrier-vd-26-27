@@ -16,21 +16,35 @@
         box-sizing: border-box;
     }
     
-    /* Engrenage d'accès en haut à droite */
-    .admin-gear {
+    /* Zone d'actions en haut à droite */
+    .top-actions {
         position: absolute;
         top: 12px;
         right: 15px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        z-index: 9999;
+    }
+    .btn-pdf {
+        background: rgba(0, 0, 0, 0.1);
+        border: 1px solid #000;
+        padding: 5px 10px;
+        font-size: 10pt;
+        font-weight: bold;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+    .btn-pdf:hover { background: rgba(0, 0, 0, 0.2); }
+    .admin-gear {
         font-size: 18pt;
         cursor: pointer;
-        z-index: 9999;
         user-select: none;
         color: #000000;
         transition: transform 0.3s;
     }
-    .admin-gear:hover {
-        transform: rotate(45deg);
-    }
+    .admin-gear:hover { transform: rotate(45deg); }
 
     .header {
         background-color: #00bcd4;
@@ -78,6 +92,7 @@
         border: 1px solid #000;
         font-size: 9pt;
         border-radius: 3px;
+        color: #000;
     }
     .header-tools .btn-inline {
         padding: 6px 12px;
@@ -122,9 +137,7 @@
         position: relative;
         user-select: none;
     }
-    .edit-mode-active td {
-        cursor: pointer;
-    }
+    .edit-mode-active td { cursor: pointer; }
     .day-text { display: inline-block; width: 28px; }
     .day-num { display: inline-block; text-align: right; width: 16px; font-weight: bold; }
     
@@ -176,17 +189,30 @@
     .btn-close { background: #f44336; }
     input[type="password"] { width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #000; font-size: 11pt; }
 
+    /* Configuration Impression PDF */
+    @media print {
+        body { zoom: 1.0; background: #fff; }
+        .top-actions, .header-tools, #login-panel { display: none !important; }
+        .calendar-table { min-width: 100%; table-layout: fixed; }
+        .calendar-table td, .calendar-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
     @media (max-width: 768px) {
         body { zoom: 1.0; }
         .header h1 { font-size: 13pt; }
         .header h2 { font-size: 10pt; }
         .header-tools { gap: 10px; padding: 8px; }
+        .top-actions { top: 8px; right: 8px; gap: 8px; }
+        .btn-pdf { font-size: 8pt; padding: 4px 8px; }
     }
 </style>
 </head>
 <body>
 
-<div class="admin-gear" onclick="openLogin()">⚙</div>
+<div class="top-actions">
+    <button class="btn-pdf" onclick="window.print()">🖨️ PDF</button>
+    <div class="admin-gear" onclick="openLogin()">⚙</div>
+</div>
 
 <div class="header" id="app-header">
     <h1>CALENDRIER ANNÉE SCOLAIRE 2026 - 2027</h1>
@@ -270,8 +296,11 @@ let state = {
 
 let editMode = false;
 
-// Fonction de prévisualisation en direct de la maintenance pendant la frappe
+// AFFICHAGE INSTANTANÉ DU CALENDRIER DÈS L'OUVERTURE
+renderCalendar();
+
 function previewMaintenance() {
+    // Mode prévisualisation dynamique pendant la saisie admin
     const isChecked = document.getElementById("maintenance-toggle").checked;
     const titleVal = document.getElementById("maintenance-title-input").value;
     const textVal = document.getElementById("maintenance-text-input").value;
@@ -289,6 +318,7 @@ function previewMaintenance() {
 }
 
 function applyFinalVisibility() {
+    // Si la maintenance est active et qu'on n'est pas connecté en admin, on coupe l'accès
     if (state.maintenanceMode && !editMode) {
         document.getElementById("main-calendar-container").style.display = "none";
         document.getElementById("maintenance-screen").style.display = "block";
@@ -346,9 +376,16 @@ function renderCalendar() {
                 td.setAttribute("data-date", dateString);
                 td.innerHTML = `<span class="day-text">${dayNames[dayOfWeek]}</span><span class="day-num">${day}</span>`;
                 
-                let periodClass = "t3-cell";
-                if (info.month >= 8 && info.month <= 11) periodClass = "t1-cell";
-                else if (info.month >= 0 && info.month <= 2) periodClass = "t2-cell";
+                // Découpage strict des trimestres demandé
+                let periodClass = "t3-cell"; 
+                
+                if (currentSubDate >= new Date(2026, 8, 1) && currentSubDate <= new Date(2026, 10, 27)) {
+                    periodClass = "t1-cell"; // Trimestre 1 : 1er Sept 2026 au 27 Nov 2026
+                } else if (currentSubDate >= new Date(2026, 10, 30) && currentSubDate <= new Date(2027, 2, 26)) {
+                    periodClass = "t2-cell"; // Trimestre 2 : 30 Nov 2026 au 26 Mars 2027
+                } else if (currentSubDate >= new Date(2027, 2, 29) && currentSubDate <= new Date(2027, 5, 18)) {
+                    periodClass = "t3-cell"; // Trimestre 3 : 29 Mars 2027 au 18 Juin 2027
+                }
                 
                 if (state.holidays && state.holidays.includes(dateString)) {
                     td.className = "holiday";
@@ -378,6 +415,7 @@ function renderCalendar() {
     }
 }
 
+// LIEN DIRECT FIREBASE POUR SYNCHRONISATION
 database.ref("calendar_state").on("value", (snapshot) => {
     if (snapshot.exists()) {
         let data = snapshot.val();
@@ -385,7 +423,7 @@ database.ref("calendar_state").on("value", (snapshot) => {
         state.color2 = data.color2 || state.color2;
         state.color3 = data.color3 || state.color3;
         state.holidays = data.holidays || [];
-        state.maintenanceMode = data.maintenanceMode || false;
+        state.maintenanceMode = data.maintenanceMode !== undefined ? data.maintenanceMode : false;
         state.maintenanceTitle = data.maintenanceTitle || "Site en maintenance";
         state.maintenanceText = data.maintenanceText || "Le calendrier est en cours de mise à jour.";
         
@@ -396,7 +434,7 @@ database.ref("calendar_state").on("value", (snapshot) => {
         document.getElementById("maintenance-title-input").value = state.maintenanceTitle;
         document.getElementById("maintenance-text-input").value = state.maintenanceText;
     }
-    if (!editMode) applyFinalVisibility();
+    applyFinalVisibility();
     renderCalendar();
 });
 
@@ -411,7 +449,7 @@ function submitLogin() {
         document.getElementById("login-panel").style.display = "none";
         document.getElementById("header-tools-panel").style.display = "flex";
         document.getElementById("app-header").style.backgroundColor = "#e91e63";
-        previewMaintenance(); // Permet à l'admin de voir l'état actuel coché
+        previewMaintenance();
     } else {
         alert("Code erroné.");
     }
@@ -437,7 +475,7 @@ function saveData() {
         alert("🔄 Tout a été synchronisé et enregistré sur Firebase !");
         logoutAdmin();
     }).catch(error => {
-        alert("Erreur : " + error.message);
+        alert("Erreur Firebase : " + error.message);
     });
 }
 </script>
